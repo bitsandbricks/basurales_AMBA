@@ -84,16 +84,14 @@ read_sf("~/Downloads/basurales_amba/data/NOV-2017/IMAG-SENT-NOV-2017.gpkg") %>%
 ## Consolidar polígonos dic 2021, 
 # todos los basurales conocidos + todos los polígonos de falsos positivos
 
-uan <- read_sf("~/Downloads/SHAPES-20230330T185928Z-001/SHAPES/40 MASCARAS BASE BASURAL/40 MASCARAS BASE BASURAL.shp")
-chu <- read_sf("~/Downloads/SHAPES-20230330T185928Z-001/SHAPES/DICIEMBRE 2021/MASCARAS PREDICCIONES DICIEMBRE 2021.shp")
-tri <- read_sf("~/Downloads/SHAPES-20230330T185928Z-001/SHAPES/DICIEMBRE 2021 BIS/MASCARAS PREDICCIONES DICIEMBRE 2021 BIS.shp")
 
-positivos <- uan |> 
-  bind_rows(chu) |> 
-  bind_rows(tri) |> 
-  transmute(clase = "basural") |> 
+
+positivos <-read_sf("~/Downloads/139 MASCARAS DICIEMBRE 2021-20230405T182949Z-001/139 MASCARAS DICIEMBRE 2021/139 MASCARAS DICIEMBRE 2021.shp") |> 
   # para el algoritmo hemos estado usando EPSG:32721
-  st_transform(32721)
+  st_transform(32721) |> 
+  #por las dudas convertimos multiplys en polys simples
+  st_cast("POLYGON") |> 
+  transmute(clase = "basural")
 
 
 falsos_p <- read_sf("~/Downloads/IMAG-SENT-DIC-2021.gpkg") |>
@@ -102,14 +100,20 @@ falsos_p <- read_sf("~/Downloads/IMAG-SENT-DIC-2021.gpkg") |>
     st_transform(
       read_sf("~/Downloads/Predicciones 2021 bis/predicciones_dic_2021_rmba_analisis_CIM.shp"),
       32721)) |> 
+  bind_rows(
+    st_transform(
+      read_sf("~/Downloads/ANALISIS PREDCCIONES CIM/CIM ANALISIS PREDICCIONES.shp"),
+      32721)
+  ) |> 
   filter(clase == "no basural" | Analisis == "FALSO POSITIVO") |> 
   transmute(clase = "no basural")
 
-# Retiramos de la capa de falsos positivos unos pedacitos que si correspnden a basurales
+# Retiramos de la capa de falsos positivos unos pedacitos que si corresponden a basurales
 # (son pisados por algún polígono clasificado como "basural")
 # usamos mapshaper siguiendo un consejo aquí https://gis.stackexchange.com/questions/240259/using-simple-features-sf-in-r-how-do-i-erase-polygons-overlapping-with-anothe
 
 falsos_p <- ms_erase(target = falsos_p, erase = positivos) 
+
 
 positivos |> 
   bind_rows(falsos_p) |> 

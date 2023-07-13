@@ -1,0 +1,13 @@
+name: deteccion_basurales
+dependencies:
+  - python=3.9
+  - conda
+  - conda:
+    - gdal==3.1.4
+    - ipykernel 
+  - pip
+  - pip:
+    - unetseg==0.2.2
+    - pysatproc
+    - gdown
+
